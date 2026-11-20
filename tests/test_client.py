@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from multitor import Settings, TorBrowser
+from torweaver import Settings, TorWeaverClient
 
 
 class FakeService:
@@ -28,7 +28,7 @@ class FakeService:
 
 def test_public_page_cleanup_and_http():
     service = FakeService()
-    with TorBrowser(Settings(), service=service) as client:
+    with TorWeaverClient(Settings(), service=service) as client:
         assert client.get("https://example.com") == "response"
         with pytest.raises(ValueError), client.page("https://example.com"):
             raise ValueError("Extraction failed")
@@ -38,13 +38,13 @@ def test_public_page_cleanup_and_http():
 
 
 def test_map_bounds_large_generators_and_preserves_order():
-    with TorBrowser(Settings(), service=FakeService(), capacity=2) as client:
+    with TorWeaverClient(Settings(), service=FakeService(), capacity=2) as client:
         assert list(client.map(lambda n: n * 2, iter(range(11)))) == list(range(0, 22, 2))
 
 
 def test_background_work_can_use_client_while_close_drains():
     started, release = Event(), Event()
-    client = TorBrowser(Settings(), service=FakeService())
+    client = TorWeaverClient(Settings(), service=FakeService())
 
     def workflow():
         started.set()
@@ -63,4 +63,4 @@ def test_background_work_can_use_client_while_close_drains():
 
 def test_settings_overrides_are_validated():
     with pytest.raises(ValueError):
-        TorBrowser(Settings(), threads=0)
+        TorWeaverClient(Settings(), threads=0)

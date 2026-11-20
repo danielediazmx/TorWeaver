@@ -16,9 +16,11 @@ T = TypeVar("T")
 R = TypeVar("R")
 
 
-class TorBrowser:
-    """Reusable client for synchronous workflows and background jobs.
+class TorWeaverClient:
+    """Coordinate Requests and browser sessions through Tor SOCKS proxies.
 
+    Tor is the network transport, not the browser engine. HTTP uses Requests;
+    page sessions use Chrome via Selenium or the optional Camoufox backend.
     Defaults read environment variables, without implicitly loading any .env file.
     Explicit keyword overrides take precedence. Inject a service for offline tests.
     """

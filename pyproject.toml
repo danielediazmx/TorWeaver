@@ -3,9 +3,10 @@ requires = ["setuptools>=75"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "multithread-tor-browser"
-version = "0.1.0"
-description = "Bounded parallel execution and isolated browsers over Tor"
+name = "torweaver"
+version = "0.2.0"
+description = "Parallel HTTP requests and browser automation through Tor SOCKS proxies for Python apps and AI tools"
+readme = "readme.md"
 requires-python = ">=3.11"
 dependencies = ["requests[socks]>=2.32.3,<3", "selenium>=4.27,<5", "stem>=1.8.2,<2", "python-dotenv>=1.0,<2"]
 
@@ -14,7 +15,7 @@ fingerprint = ["camoufox>=0.4.11,<0.5", "playwright>=1.51,<1.52"]
 dev = ["pytest>=8,<10", "ruff>=0.9,<1"]
 
 [project.scripts]
-tor-browser = "multitor.cli:main"
+torweaver = "torweaver.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

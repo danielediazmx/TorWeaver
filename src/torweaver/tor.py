@@ -1,4 +1,8 @@
-"""Exclusive endpoint leases, remote DNS HTTP, and explicit Tor control."""
+"""Tor network transport: SOCKS endpoint leases, Requests, and circuit control.
+
+An endpoint is a Tor daemon's SOCKS listener, not an exit IP allocation.
+Tor chooses the exit relay; separate endpoints may use the same exit relay.
+"""
 
 from contextlib import contextmanager
 from queue import Empty, Queue

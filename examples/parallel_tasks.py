@@ -1,6 +1,6 @@
 """Run with python examples/parallel_tasks.py after installing the package."""
 
-from multitor import TaskExecutor
+from torweaver import TaskExecutor
 
 
 def square(value: int) -> int:

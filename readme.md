@@ -1,16 +1,21 @@
 # TorWeaver
 
-**Parallel browser automation over Tor for Python apps and AI agents.**
+**Parallel HTTP requests and browser automation through Tor SOCKS proxies.**
 
 Give your web workflows one Python API for Tor-routed HTTP requests, isolated
-browser sessions, and bounded parallel jobs. Use Selenium or Camoufox, keep your
+browser sessions, and bounded parallel jobs. Use Requests, Camoufox, or Chrome via Selenium, keep your
 application logic in your own project, and iterate with a live-reloading Docker
 setup.
 
-```python
-from multitor import TorBrowser
+**Tor is the transport layer.** Requests makes HTTP requests without a browser;
+Camoufox and Chrome provide browser sessions. Each connects to a Tor SOCKS proxy,
+and the destination sees the Tor exit relay's IP. TorWeaver does not install,
+launch, or control the Tor Browser application.
 
-with TorBrowser(threads=4, browser_limit=2) as client:
+```python
+from torweaver import TorWeaverClient
+
+with TorWeaverClient(threads=4, browser_limit=2) as client:
     with client.page("https://example.com") as page:
         links = page.extract("a[href]", attribute="href", limit=10)
         print(links)
@@ -91,28 +96,30 @@ docker compose up -d --build --wait --wait-timeout 420
 The default Selenium backend requires Chrome/Chromium. An installed chromedriver
 is used when available; otherwise Selenium Manager resolves the driver.
 
-**Naming:** TorWeaver is the project name. The current Python import remains
-`multitor`, the client remains `TorBrowser`, and the distribution name remains
-`multithread-tor-browser`. No package named `torweaver` has been published by this
-project; installation instructions use the repository rather than PyPI.
+**Naming:** Project and distribution: `torweaver`. Public client:
+`from torweaver import TorWeaverClient`. Command: `torweaver` or
+`python -m torweaver`. This project has not published a PyPI release;
+install from this checkout or a locally built wheel.
+
+Existing local integrations should follow the [migration guide](docs/migration.md).
 
 ## Python API
 
 ### HTTP without launching a browser
 
 ```python
-from multitor import TorBrowser
+from torweaver import TorWeaverClient
 
-with TorBrowser() as client:
+with TorWeaverClient() as client:
     html = client.get("https://example.com")
 ```
 
 ### Background jobs
 
 ```python
-from multitor import TorBrowser
+from torweaver import TorWeaverClient
 
-with TorBrowser(threads=4, capacity=16) as client:
+with TorWeaverClient(threads=4, capacity=16) as client:
     job = client.submit(client.get, "https://example.com")
     # Continue doing other work, then collect the result.
     html = job.result()
@@ -121,11 +128,11 @@ with TorBrowser(threads=4, capacity=16) as client:
 ### Multiple inputs
 
 ```python
-from multitor import TorBrowser
+from torweaver import TorWeaverClient
 
 urls = ["https://example.com", "https://example.org"]
 
-with TorBrowser(threads=4, capacity=16) as client:
+with TorWeaverClient(threads=4, capacity=16) as client:
     pages = list(client.map(client.get, urls))
 ```
 
@@ -142,17 +149,17 @@ agent framework's tool interface. Your model chooses when to call the tool; the
 library handles browser execution and returns data your application can serialize.
 
 ```python
-from multitor import TorBrowser
+from torweaver import TorWeaverClient
 
 
-def read_page(client: TorBrowser, url: str) -> dict:
+def read_page(client: TorWeaverClient, url: str) -> dict:
     """Read selected text from a web page through Tor."""
     with client.page(url) as page:
         paragraphs = page.extract("h1, h2, p", limit=20)
     return {"url": url, "text": "\n".join(paragraphs)[:8000]}
 
 
-with TorBrowser(browser_limit=2) as client:
+with TorWeaverClient(browser_limit=2) as client:
     # Register a wrapper around read_page(client, url) in your agent application.
     result = client.submit(read_page, client, "https://example.com").result()
     print(result)
@@ -198,19 +205,24 @@ configure endpoints, or run without Docker.
 ```text
 Your Python application or AI tool
                 |
-            TorBrowser
+          TorWeaverClient
                 |
      Bounded executor + shared browser budget
                 |
-       Exclusive Tor endpoint lease
+ Requests / Camoufox / Chrome via Selenium
                 |
-    HTTP client / Selenium / Camoufox
+      Exclusive Tor SOCKS endpoint lease
+                |
+     Tor network -> exit relay -> destination
 ```
 
 Each client owns its resources; there are no global service singletons. Worker,
 queue, and browser limits are explicit. Independent Tor containers can still
 choose the same exit IP. By default, two endpoints limit Tor-backed concurrency
 to at most two jobs even if additional workers are configured.
+Tor routes each connection; it does not assign an IP to the browser or guarantee
+a fresh exit IP per request. Browser fingerprint profiles belong to the browser
+backend, independently of Tor's network routing.
 
 ## Related projects
 
@@ -230,8 +242,8 @@ Use or Crawl4AI is currently provided.
 ## Project structure
 
 ```text
-src/multitor/
-  client.py       Public TorBrowser API
+src/torweaver/
+  client.py       Public TorWeaverClient API
   execution.py    Bounded thread and process pools
   browsers.py     Browser interface and Selenium/Camoufox adapters
   tor.py          Endpoint leases, HTTP transport, optional Tor control
@@ -255,7 +267,8 @@ There are no published performance benchmarks or guarantees of anonymity,
 undetectability, or successful access to every website. Camoufox's WebGL profiles
 change browser-visible identity; they do not emulate a physical GPU.
 
-SOCKS browser automation is not the hardened Tor Browser. Strict network isolation
+Tor Browser is a separate application and is not a dependency of this project.
+Strict network isolation
 requires deployment-level egress controls. The example Chromium container disables
 Chrome's sandbox for compatibility with Docker's default restrictions; host use
 keeps it enabled unless explicitly overridden. Resource budgets are per client

@@ -2,6 +2,17 @@
 
 Detailed setup, configuration, lifecycle semantics, and extension points.
 
+## Network transport and application clients
+
+TorWeaver uses Tor daemon SOCKS endpoints as its transport layer. It does not use
+the Tor Browser application. `TorWeaverClient.get()` uses Requests without a
+browser; `TorWeaverClient.page()` uses Camoufox or Chrome controlled by Selenium.
+Those clients connect through Tor to a destination that sees the exit relay IP.
+Tor chooses exit relays, and multiple SOCKS endpoints may share an exit IP.
+Neither endpoint leasing nor NEWNYM guarantees a new IP for every request.
+Fingerprint generation and WebGL settings are browser backend features, separate
+from Tor routing. See [migration notes](migration.md) for the public API rename.
+
 ## Reuse as a library in another project
 
 Install this package into the consuming project's virtual environment:
@@ -12,13 +23,13 @@ python -m pip install "path/to/torweaver"
 python -m pip install -e "path/to/torweaver"
 ```
 
-The public entry point is `TorBrowser`. All workflows using one client share its
+The public entry point is `TorWeaverClient`. All workflows using one client share its
 Tor endpoint pool, browser budget, and executor. Infrastructure setup is internal:
 
 ```python
-from multitor import TorBrowser
+from torweaver import TorWeaverClient
 
-with TorBrowser(threads=4, browser_limit=2) as client:
+with TorWeaverClient(threads=4, browser_limit=2) as client:
     with client.page("https://example.com") as page:
         links = page.extract("a[href]", attribute="href", limit=10)
         print(links)
@@ -49,34 +60,37 @@ def top_repositories(client):
         return page.extract("div.search-title a[href]", attribute="href", limit=10)
 
 
-with TorBrowser() as client:
+with TorWeaverClient() as client:
     job = client.submit(top_repositories, client)
     repositories = job.result()
 ```
 
 The GitHub selector is illustrative and has not been verified against its live DOM.
 GitHub-specific parsing, persistence, and selectors belong to the consuming project,
-not this library. Switching `TorBrowser(backend="camoufox")` uses the same API after
+not this library. Switching `TorWeaverClient(backend="camoufox")` uses the same API after
 installing the fingerprint extra and browser binary. No browser or Tor container
 starts at import time. Start the supplied Compose stack separately; installation
 does not install Docker or provision network services automatically.
 
-`TorBrowser` reads environment variables but does not load `.env` implicitly.
+`TorWeaverClient` reads environment variables but does not load `.env` implicitly.
 Pass `Settings` or keyword overrides for explicit configuration, or call
 `dotenv.load_dotenv()` in your application. Close page scopes before the owning
 client; close the client from the owning thread. Client exit drains queued jobs
 before disabling their page/HTTP operations. Services can accept an injected
-`TorBrowser` instance so that multiple application services share one budget.
+`TorWeaverClient` instance so that multiple application services share one budget.
 
 Build a distributable wheel without copying project folders:
 
 ```powershell
 python -m pip wheel --no-deps . --wheel-dir dist
 # In another project's environment, install the generated wheel:
-python -m pip install path/to/multithread_tor_browser-0.1.0-py3-none-any.whl
+python -m pip install path/to/torweaver-0.2.0-py3-none-any.whl
 ```
 
 The package is local; it has not been published to PyPI.
+Its distribution, import package, and command are named `torweaver`; the public
+client is `TorWeaverClient`. Compose also uses the explicit project name
+`torweaver`, independent of the checkout directory.
 
 ## Requirements and quick start
 
@@ -196,9 +210,9 @@ not just whether a TCP port is open. No control ports or Docker socket are expos
 ## Execution model
 
 ```python
-from multitor import TaskExecutor
-from multitor.bootstrap import build_service
-from multitor.config import Settings
+from torweaver import TaskExecutor
+from torweaver.bootstrap import build_service
+from torweaver.config import Settings
 
 service = build_service(Settings.from_env())
 with TaskExecutor(threads=4, processes=2, capacity=16) as executor:
@@ -259,8 +273,8 @@ Requests uses `socks5h` so target DNS resolution goes through the proxy, and ign
 ambient HTTP proxy environment variables. Browser adapters translate this to their
 `socks5` syntax, restrict DNS behavior, and disable non-proxied WebRTC behavior.
 An unavailable Tor endpoint raises an error; the application never retries directly.
-Browser automation over SOCKS is not the hardened Tor Browser and is not a complete
-network isolation boundary. For strict egress guarantees enforce a firewall or
+This project does not launch Tor Browser. Browser automation through SOCKS is not
+a complete network isolation boundary. For strict egress guarantees enforce a firewall or
 container network policy and validate DNS/WebRTC behavior in your deployment.
 
 `TorPool` leases one endpoint exclusively per job and always returns it on failure.
@@ -302,8 +316,8 @@ retry automatically, avoiding unintended replay of application operations.
 ## Project structure and extension points
 
 ```text
-src/multitor/
-  client.py       Public TorBrowser library facade
+src/torweaver/
+  client.py       Public TorWeaverClient library facade
   config.py       Immutable, validated settings
   execution.py    Bounded thread/process orchestration and Future lifecycle
   tor.py          Endpoint leasing, HTTP transport, optional circuit control
@@ -322,7 +336,8 @@ runner.py        Compatibility CLI entry point
 
 The application service depends on small `HttpClient` and `BrowserProvider`
 protocols, rather than concrete implementations. Add a backend by implementing
-`open(proxy)` as a context manager yielding a session with `title(url)`, then wire
+`open(proxy)` as a context manager yielding a session with `goto(url)`,
+`extract(selector, attribute=..., limit=...)`, and `title(url)`, then wire
 it at the composition root. Inject fakes for offline tests. Add your own workflows
 above these services instead of embedding business rules in the infrastructure.
 Configuration, scheduling, transport, resource ownership, and application use cases

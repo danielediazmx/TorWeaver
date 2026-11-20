@@ -1,3 +1,5 @@
+name: torweaver
+
 x-tor: &tor
   build: ./docker/tor
   restart: unless-stopped

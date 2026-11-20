@@ -22,7 +22,7 @@ class TaskExecutor:
         if min(threads, processes, capacity) < 1:
             raise ValueError("Worker counts and capacity must be positive")
         self._slots = BoundedSemaphore(capacity)
-        self._threads = ThreadPoolExecutor(threads, thread_name_prefix="multitor")
+        self._threads = ThreadPoolExecutor(threads, thread_name_prefix="torweaver")
         self._processes = ProcessPoolExecutor(processes, mp_context=get_context("spawn"))
         self._lock = Lock()
         self._closed = False

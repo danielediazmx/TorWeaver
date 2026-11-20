@@ -3,10 +3,10 @@ from contextlib import contextmanager
 from threading import Event
 from types import SimpleNamespace
 
-from multitor.config import Settings
-from multitor.execution import TaskExecutor
-from multitor.service import AutomationService
-from multitor.tor import TorPool, browser_proxy
+from torweaver.config import Settings
+from torweaver.execution import TaskExecutor
+from torweaver.service import AutomationService
+from torweaver.tor import TorPool, browser_proxy
 
 
 def square(value):

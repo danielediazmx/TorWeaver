@@ -15,7 +15,10 @@ def main() -> int:
     from dotenv import load_dotenv
 
     load_dotenv()
-    parser = argparse.ArgumentParser(description="Parallel HTTP and browser requests over Tor")
+    parser = argparse.ArgumentParser(
+        prog="torweaver",
+        description="Parallel Requests, Camoufox, and Chrome workflows through Tor SOCKS proxies",
+    )
     parser.add_argument("urls", nargs="+")
     parser.add_argument("--mode", choices=["http", "browser"], default="http")
     args = parser.parse_args()
