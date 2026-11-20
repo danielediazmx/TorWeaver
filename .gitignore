@@ -1,0 +1,47 @@
+# Local environment and secrets. Keep configuration templates versioned.
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Python virtual environments and bytecode.
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+
+# Packaging output.
+*.egg-info/
+*.egg
+/build/
+/dist/
+
+# Test, lint, and coverage output.
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+/htmlcov/
+/coverage.xml
+
+# Local logs, browser profiles, and generated browser artifacts.
+*.log
+/.cache/
+/browser-profiles/
+/artifacts/
+/playwright-report/
+/test-results/
+/work/
+
+# Local editor and operating-system files.
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
